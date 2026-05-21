@@ -151,7 +151,7 @@
 
         dialogVisible.value = false
         emit('submit')
-      } catch (error) {
+      } catch (e) {
         ElMessage.error(dialogType.value === 'add' ? '添加失败' : '更新失败')
       }
     })
