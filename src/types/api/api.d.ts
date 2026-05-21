@@ -135,4 +135,50 @@ declare namespace Api {
         }
     >
   }
+
+  /** 内容管理类型 */
+  namespace ContentManage {
+    type CategoryList = Api.Common.PaginatedResponse<CategoryListItem>
+
+    /** 分类列表项 */
+    interface CategoryListItem {
+      id: number
+      name: string
+      slug: string
+      status: boolean
+      createdAt: string
+      description: string
+    }
+
+    interface CategoryForm {
+      id?: number
+      name: string
+      slug: string
+      description: string
+      status: boolean
+    }
+
+    interface CategoryCreateParams {
+      name: string
+      slug: string
+      description: string
+      status: boolean
+    }
+
+    interface CategoryUpdateParams {
+      name: string
+      slug: string
+      description: string
+      status: boolean
+    }
+
+    /** 分类搜索参数 */
+    type CategorySearchParams = Partial<
+      Pick<CategoryListItem, 'id' | 'name' | 'slug' | 'description' | 'status'> &
+        Api.Common.CommonSearchParams & {
+          startTime: string | null
+          endTime: string | null
+        }
+    >
+  }
 }

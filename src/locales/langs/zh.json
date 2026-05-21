@@ -263,6 +263,12 @@
       "role": "角色管理",
       "userCenter": "个人中心",
       "menu": "菜单管理"
+    },
+    "content": {
+      "title": "内容管理",
+      "category": "分类管理",
+      "lesson": "课程管理",
+      "dailyLesson": "每日课程"
     }
   },
   "table": {

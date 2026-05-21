@@ -107,6 +107,7 @@
 
     try {
       const list = await fetchGetMenuList()
+      console.log(list)
       tableData.value = list
     } catch (error) {
       throw error instanceof Error ? error : new Error('获取菜单失败')
@@ -182,12 +183,19 @@
     {
       prop: 'date',
       label: '编辑时间',
-      formatter: () => '2022-3-12 12:00:00'
+      formatter: (row: AppRouteRecord) => {
+        if (!row.meta.date) return '-'
+        return row.meta.date.replace('T', ' ').slice(0, 19)
+      }
     },
     {
       prop: 'status',
       label: '状态',
-      formatter: () => h(ElTag, { type: 'success' }, () => '启用')
+      formatter: (row: AppRouteRecord) => {
+        return h(ElTag, { type: row.meta.enabled ? 'success' : 'danger' }, () =>
+          row.meta.enabled ? '启用' : '禁用'
+        )
+      }
     },
     {
       prop: 'operation',
