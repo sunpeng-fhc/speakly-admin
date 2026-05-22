@@ -52,7 +52,7 @@
   import CategoryDialog from './modules/category-dialog.vue'
 
   // 获取分类列表
-  import { fetchGetCategoryList } from '@/api/content-manage'
+  import { fetchGetCategoryList, deleteCategory } from '@/api/content-manage'
   import { ElTag, ElMessageBox, dayjs } from 'element-plus'
 
   type CategoryListItem = Api.ContentManage.CategoryListItem
@@ -235,8 +235,9 @@
       cancelButtonText: '取消',
       type: 'warning'
     })
-      .then(() => {
+      .then(async () => {
         // TODO: 调用删除接口
+        await deleteCategory(row.id)
         ElMessage.success('删除成功')
         refreshData()
       })

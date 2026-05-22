@@ -180,5 +180,110 @@ declare namespace Api {
           endTime: string | null
         }
     >
+
+    /** 课程列表项 */
+    type LessonList = Api.Common.PaginatedResponse<LessonListItem>
+
+    /** 课程列表项 */
+    interface LessonListItem {
+      title: any
+      id: number
+      categoryId: number
+      categoryName: string
+      title: string
+      slug: string
+      summary: string
+      coverImage: string
+      audioUrl: string
+      durationSeconds: number
+      level: string
+      transcript: string
+      status: boolean
+      isFeatured: boolean
+      sortOrder: number
+      publishedAt: string
+      createdAt: string
+      updatedAt: string
+      isDaily: boolean
+      dailyDate: string
+    }
+
+    /** 课程表单 */
+    interface LessonForm {
+      id?: number
+      categoryId: number | undefined
+      title: string
+      slug: string
+      summary: string
+      coverImage: string
+      audioUrl: string
+      durationSeconds: number | undefined
+      level: string
+      transcript: string
+      status: boolean
+      isFeatured: boolean
+      sortOrder: number
+      publishedAt: string | null
+      isDaily: boolean
+      dailyDate: string | null
+    }
+
+    /** 创建课程参数 */
+    interface LessonCreateParams {
+      categoryId: number
+      title: string
+      slug: string
+      summary: string
+      coverImage: string
+      audioUrl: string
+      durationSeconds: number
+      level: string
+      transcript: string
+      status: boolean
+      isFeatured: boolean
+      sortOrder: number
+      publishedAt: string | null
+      isDaily: boolean
+      dailyDate: string | null
+    }
+
+    /** 更新课程参数 */
+    interface LessonUpdateParams {
+      categoryId: number
+      title: string
+      slug: string
+      summary: string
+      coverImage: string
+      audioUrl: string
+      durationSeconds: number
+      level: string
+      transcript: string
+      status: boolean
+      isFeatured: boolean
+      sortOrder: number
+      publishedAt: string | null
+      isDaily: boolean
+      dailyDate: string | null
+    }
+
+    /** 课程搜索参数 */
+    type LessonSearchParams = Partial<
+      Pick<
+        LessonListItem,
+        | 'id'
+        | 'categoryId'
+        | 'categoryName'
+        | 'title'
+        | 'slug'
+        | 'level'
+        | 'status'
+        | 'isFeatured'
+        | 'isDaily'
+      > &
+        Api.Common.CommonSearchParams & {
+          startTime: string | null
+          endTime: string | null
+        }
+    >
   }
 }

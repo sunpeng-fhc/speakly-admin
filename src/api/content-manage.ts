@@ -23,3 +23,39 @@ export function updateCategory(id: number, data: Api.ContentManage.CategoryUpdat
     data
   })
 }
+
+export function deleteCategory(id: number) {
+  return request.del({
+    url: `/api/category/delete/${id}`
+  })
+}
+
+// 获取课程列表
+export function fetchGetLessonList(params: Api.ContentManage.LessonSearchParams) {
+  return request.get<Api.ContentManage.LessonList>({
+    url: '/api/lesson/list',
+    params
+  })
+}
+
+export function deleteLesson(id: number) {
+  return request.del({
+    url: `/api/category/delete/${id}`
+  })
+}
+
+// 添加课程
+export function createLesson(data: Api.ContentManage.LessonCreateParams) {
+  return request.post({
+    url: '/api/lesson/create',
+    data
+  })
+}
+
+// 更新课程
+export function updateLesson(id: number, data: Api.ContentManage.LessonUpdateParams) {
+  return request.put({
+    url: `/api/lesson/update/${id}`,
+    data
+  })
+}
