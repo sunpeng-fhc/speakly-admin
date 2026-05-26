@@ -107,7 +107,6 @@
 
     try {
       const list = await fetchGetMenuList()
-      console.log(list)
       tableData.value = list
     } catch (error) {
       throw error instanceof Error ? error : new Error('获取菜单失败')

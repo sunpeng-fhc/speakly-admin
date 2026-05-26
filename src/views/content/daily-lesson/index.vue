@@ -48,8 +48,8 @@
   import { ButtonMoreItem } from '@/components/core/forms/art-button-more/index.vue'
   import { useTable } from '@/hooks/core/useTable'
   import ArtButtonMore from '@/components/core/forms/art-button-more/index.vue'
-  // import LessonSearch from  './modules/lesson-search.vue'
-  // import LessonEditDialog from './modules/lesson-edit-dialog.vue'
+  import LessonSearch from './modules/lesson-search.vue'
+  import LessonEditDialog from './modules/lesson-edit-dialog.vue'
 
   import { fetchGetLessonList, deleteLesson } from '@/api/content-manage'
   import { ElTag, ElMessageBox, ElMessage, dayjs } from 'element-plus'

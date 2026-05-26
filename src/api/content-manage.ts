@@ -59,3 +59,10 @@ export function updateLesson(id: number, data: Api.ContentManage.LessonUpdatePar
     data
   })
 }
+
+// 根据课程查询对应的字幕
+export function fetchLessonSegments(lessonId: number) {
+  return request.get<Api.ContentManage.LessonSegmentItem[]>({
+    url: `/api/lesson-segment/list/${lessonId}`
+  })
+}

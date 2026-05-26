@@ -285,5 +285,16 @@ declare namespace Api {
           endTime: string | null
         }
     >
+
+    /** 课程字幕分句 */
+    interface LessonSegmentItem {
+      id?: number
+      lessonId?: number
+      startTime: number
+      endTime: number
+      sentence: string
+      translation?: string
+      sortOrder: number
+    }
   }
 }

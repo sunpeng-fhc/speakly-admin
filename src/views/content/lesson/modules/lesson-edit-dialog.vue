@@ -103,6 +103,12 @@
     lessonData?: LessonListItem
   }
 
+  const props = withDefaults(defineProps<Props>(), {
+    modelValue: false,
+    dialogType: 'add',
+    lessonData: undefined
+  })
+
   interface Emits {
     (e: 'update:modelValue', value: boolean): void
     (e: 'success'): void
@@ -119,12 +125,6 @@
 
     categoryOptions.value = res.records || []
   }
-
-  const props = withDefaults(defineProps<Props>(), {
-    modelValue: false,
-    dialogType: 'add',
-    lessonData: undefined
-  })
 
   const emit = defineEmits<Emits>()
 

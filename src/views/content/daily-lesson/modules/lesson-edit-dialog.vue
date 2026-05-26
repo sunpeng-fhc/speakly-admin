@@ -2,90 +2,223 @@
   <ElDialog
     v-model="visible"
     :title="dialogType === 'add' ? '新增课程' : '编辑课程'"
-    width="50%"
+    width="70%"
     align-center
-    @close="handleClose"
   >
-    <ElForm ref="formRef" :model="form" :rules="rules" label-width="120px">
-      <ElFormItem label="课程标题" prop="title">
-        <ElInput v-model="form.title" placeholder="请输入课程标题" />
-      </ElFormItem>
+    <ElTabs type="border-card" class="demo-tabs">
+      <ElTabPane label="基础信息">
+        <ArtForm
+          ref="formRef"
+          v-model="form"
+          :items="formItems"
+          :rules="rules"
+          :span="width > 640 ? 12 : 24"
+          :gutter="20"
+          label-width="100px"
+          :show-reset="false"
+          :show-submit="false"
+        />
 
-      <ElFormItem label="课程标识" prop="slug">
-        <ElInput v-model="form.slug" placeholder="请输入课程标识，例如 morning-coffee" />
-      </ElFormItem>
+        <div class="dialog-footer">
+          <ElButton @click="handleClose">取消</ElButton>
+          <ElButton type="primary" @click="handleSubmit">确定</ElButton>
+        </div>
+      </ElTabPane>
 
-      <!--      <ElFormItem label="分类ID" prop="categoryId">-->
-      <!--        <ElInputNumber v-model="form.categoryId" :min="1" style="width: 100%" />-->
-      <!--      </ElFormItem>-->
-      <ElFormItem label="课程分类" prop="categoryId">
-        <ElSelect v-model="form.categoryId" placeholder="请选择课程分类" style="width: 100%">
-          <ElOption
-            v-for="item in categoryOptions"
-            :key="item.id"
-            :label="item.name"
-            :value="item.id"
-          />
-        </ElSelect>
-      </ElFormItem>
-
-      <ElFormItem label="课程等级" prop="level">
-        <ElSelect v-model="form.level" placeholder="请选择课程等级">
-          <ElOption label="A1" value="A1" />
-          <ElOption label="A2" value="A2" />
-          <ElOption label="B1" value="B1" />
-        </ElSelect>
-      </ElFormItem>
-
-      <ElFormItem label="课程简介" prop="summary">
-        <ElInput v-model="form.summary" type="textarea" :rows="3" placeholder="请输入课程简介" />
-      </ElFormItem>
-
-      <ElFormItem label="封面图" prop="coverImage">
-        <ElInput v-model="form.coverImage" placeholder="请输入封面图地址" />
-      </ElFormItem>
-
-      <ElFormItem label="音频地址" prop="audioUrl">
-        <ElInput v-model="form.audioUrl" placeholder="请输入音频地址" />
-      </ElFormItem>
-
-      <ElFormItem label="音频时长" prop="durationSeconds">
-        <ElInputNumber v-model="form.durationSeconds" :min="0" style="width: 100%" />
-      </ElFormItem>
-
-      <ElFormItem label="文章内容" prop="transcript">
+      <ElTabPane label="文章内容">
         <ElInput
           v-model="form.transcript"
           type="textarea"
-          :rows="6"
+          :rows="12"
           placeholder="请输入完整课程文章内容"
         />
-      </ElFormItem>
+      </ElTabPane>
 
-      <ElFormItem label="排序" prop="sortOrder">
-        <ElInputNumber v-model="form.sortOrder" :min="0" style="width: 100%" />
-      </ElFormItem>
+      <ElTabPane label="字幕分句">
+        <div class="segment-panel">
+          <!-- 有字幕：显示字幕列表 -->
+          <template v-if="segments.length">
+            <div class="segment-toolbar">
+              <div>
+                <strong>字幕分句</strong>
+                <span class="segment-count">共 {{ segments.length }} 条</span>
+              </div>
 
-      <ElFormItem label="推荐课程">
-        <ElSwitch v-model="form.isFeatured" />
-      </ElFormItem>
+              <ElSpace>
+                <ElButton @click="showUploadPanel = true">重新上传 SRT</ElButton>
+                <ElButton type="primary" @click="handleSaveSegments">保存字幕</ElButton>
+              </ElSpace>
+            </div>
 
-      <ElFormItem label="启用">
-        <ElSwitch v-model="form.status" />
-      </ElFormItem>
-    </ElForm>
+            <ElTable :data="segments" border height="420">
+              <ElTableColumn prop="sortOrder" label="#" width="70" />
 
-    <template #footer>
-      <ElButton @click="handleClose">取消</ElButton>
-      <ElButton type="primary" @click="handleSubmit">提交</ElButton>
-    </template>
+              <ElTableColumn label="开始时间" width="120">
+                <template #default="{ row }">
+                  <ElInputNumber v-model="row.startTime" :precision="3" :step="0.1" />
+                </template>
+              </ElTableColumn>
+
+              <ElTableColumn label="结束时间" width="120">
+                <template #default="{ row }">
+                  <ElInputNumber v-model="row.endTime" :precision="3" :step="0.1" />
+                </template>
+              </ElTableColumn>
+
+              <ElTableColumn label="英文句子" min-width="300">
+                <template #default="{ row }">
+                  <ElInput v-model="row.sentence" type="textarea" :rows="2" />
+                </template>
+              </ElTableColumn>
+
+              <ElTableColumn label="中文翻译" min-width="260">
+                <template #default="{ row }">
+                  <ElInput v-model="row.translation" type="textarea" :rows="2" />
+                </template>
+              </ElTableColumn>
+
+              <ElTableColumn label="操作" width="100" fixed="right">
+                <template #default="{ $index }">
+                  <ElButton type="danger" link @click="removeSegment($index)">删除</ElButton>
+                </template>
+              </ElTableColumn>
+            </ElTable>
+          </template>
+
+          <!-- 无字幕：显示上传区 -->
+          <template v-else>
+            <div class="segment-import">
+              <ElAlert
+                title="暂无字幕数据，请上传 .srt 字幕文件，系统会解析为课程分句数据。"
+                type="info"
+                show-icon
+                :closable="false"
+              />
+
+              <ElUpload
+                v-model:file-list="fileList"
+                class="srt-upload"
+                drag
+                accept=".srt"
+                :limit="1"
+                :auto-upload="false"
+                :on-change="handleSrtChange"
+                :on-remove="handleSrtRemove"
+                :on-exceed="handleSrtExceed"
+              >
+                <ElIcon class="el-icon--upload">
+                  <UploadFilled />
+                </ElIcon>
+
+                <div class="el-upload__text"> 将 SRT 文件拖到这里，或 <em>点击上传</em> </div>
+
+                <template #tip>
+                  <div class="el-upload__tip">
+                    仅支持 .srt 文件。上传后可解析为开始时间、结束时间、英文句子和中文翻译。
+                  </div>
+                </template>
+              </ElUpload>
+
+              <ElButton type="primary" @click="handleParseSrt">解析字幕</ElButton>
+            </div>
+          </template>
+
+          <!-- 有字幕时，重新上传区域 -->
+          <ElDialog v-model="showUploadPanel" title="重新上传 SRT" width="40%">
+            <ElUpload
+              v-model:file-list="fileList"
+              drag
+              accept=".srt"
+              :limit="1"
+              :auto-upload="false"
+              :on-change="handleSrtChange"
+              :on-remove="handleSrtRemove"
+              :on-exceed="handleSrtExceed"
+            >
+              <ElIcon class="el-icon--upload">
+                <UploadFilled />
+              </ElIcon>
+
+              <div class="el-upload__text"> 将 SRT 文件拖到这里，或 <em>点击上传</em> </div>
+            </ElUpload>
+
+            <template #footer>
+              <ElButton @click="showUploadPanel = false">取消</ElButton>
+              <ElButton type="primary" @click="handleParseSrt">解析并覆盖</ElButton>
+            </template>
+          </ElDialog>
+        </div>
+      </ElTabPane>
+      <ElTabPane label="重点单词">重点单词</ElTabPane>
+      <ElTabPane label="课程预览">课程预览</ElTabPane>
+    </ElTabs>
   </ElDialog>
 </template>
 
 <script setup lang="ts">
-  import type { FormInstance, FormRules } from 'element-plus'
-  import { createLesson, updateLesson } from '@/api/content-manage'
-  import { fetchGetCategoryList } from '@/api/content-manage'
+  import type { FormItem } from '@/components/core/forms/art-form/index.vue'
+  import type { FormRules } from 'element-plus'
+  import {
+    fetchGetCategoryList,
+    createLesson,
+    updateLesson,
+    fetchLessonSegments
+  } from '@/api/content-manage'
+  import { UploadFilled } from '@element-plus/icons-vue'
+  import type { UploadFile, UploadFiles } from 'element-plus'
+
+  const fileList = ref<UploadFile[]>([])
+
+  const showUploadPanel = ref(false)
+
+  const segments = ref<Api.ContentManage.LessonSegmentItem[]>([])
+
+  const handleSrtChange = (file: UploadFile) => {
+    const fileName = file.name.toLowerCase()
+
+    if (!fileName.endsWith('.srt')) {
+      ElMessage.error('只支持上传 .srt 文件')
+      fileList.value = []
+      return
+    }
+
+    fileList.value = [file]
+  }
+
+  const handleSrtRemove = () => {
+    fileList.value = []
+  }
+
+  const handleSrtExceed = () => {
+    ElMessage.warning('一次只能上传一个 SRT 文件')
+  }
+
+  const removeSegment = (index: number) => {
+    segments.value.splice(index, 1)
+  }
+
+  // 解析srt并覆盖srt
+  const handleParseSrt = async () => {
+    if (!fileList.value.length) {
+      ElMessage.warning('请先上传 SRT 文件')
+      return
+    }
+
+    // 下一步这里调用后端 SRT 解析接口
+    // const res = await importSrt({ lessonId: form.id, file: fileList.value[0].raw })
+    // segments.value = res.records
+
+    showUploadPanel.value = false
+    ElMessage.success('字幕解析成功')
+  }
+
+  //保存字幕
+  const handleSaveSegments = async () => {
+    // 下一步这里调用保存字幕接口
+    // await saveLessonSegments(form.id, segments.value)
+
+    ElMessage.success('字幕保存成功')
+  }
 
   type LessonListItem = Api.ContentManage.LessonListItem
 
@@ -100,18 +233,6 @@
     (e: 'success'): void
   }
 
-  const categoryOptions = ref<Api.ContentManage.CategoryListItem[]>([])
-
-  const getCategoryOptions = async () => {
-    const res = await fetchGetCategoryList({
-      current: 1,
-      size: 100,
-      status: true
-    })
-
-    categoryOptions.value = res.records || []
-  }
-
   const props = withDefaults(defineProps<Props>(), {
     modelValue: false,
     dialogType: 'add',
@@ -120,7 +241,9 @@
 
   const emit = defineEmits<Emits>()
 
-  const formRef = ref<FormInstance>()
+  const { width } = useWindowSize()
+
+  const formRef = ref()
 
   const visible = computed({
     get: () => props.modelValue,
@@ -140,20 +263,152 @@
     transcript: '',
     status: true,
     isFeatured: false,
+    isDaily: false,
+    dailyDate: null,
     sortOrder: 0,
-    publishedAt: null,
-    isDaily: true,
-    dailyDate: null
+    publishedAt: null
   })
+
+  const levelOptions = ref([
+    { label: 'A1', value: 'A1' },
+    { label: 'A2', value: 'A2' }
+  ])
+
+  const categoryOptions = ref<{ label: string; value: number }[]>([])
+
+  const getCategoryOptions = async () => {
+    const res = await fetchGetCategoryList({
+      current: 1,
+      size: 100,
+      status: true
+    })
+
+    categoryOptions.value = (res.records || []).map((item) => ({
+      label: item.name,
+      value: item.id
+    }))
+  }
 
   const rules = reactive<FormRules>({
     title: [{ required: true, message: '请输入课程标题', trigger: 'blur' }],
     slug: [{ required: true, message: '请输入课程标识', trigger: 'blur' }],
-    categoryId: [{ required: true, message: '请输入分类ID', trigger: 'change' }],
+    categoryId: [{ required: true, message: '请选择课程分类', trigger: 'change' }],
     level: [{ required: true, message: '请选择课程等级', trigger: 'change' }],
     summary: [{ required: true, message: '请输入课程简介', trigger: 'blur' }],
-    audioUrl: [{ required: true, message: '请输入音频地址', trigger: 'blur' }],
-    transcript: [{ required: true, message: '请输入文章内容', trigger: 'blur' }]
+    audioUrl: [{ required: true, message: '请输入音频地址', trigger: 'blur' }]
+  })
+
+  const formItems = computed<FormItem[]>(() => {
+    const switchSpan = width.value < 640 ? 12 : 6
+
+    return [
+      {
+        label: '课程标题',
+        key: 'title',
+        type: 'input',
+        props: { placeholder: '请输入课程标题' }
+      },
+      {
+        label: '课程标识',
+        key: 'slug',
+        type: 'input',
+        props: { placeholder: '请输入课程标识，例如 morning-coffee' }
+      },
+      {
+        label: '课程分类',
+        key: 'categoryId',
+        type: 'select',
+        props: {
+          placeholder: '请选择课程分类',
+          options: categoryOptions.value,
+          clearable: true
+        }
+      },
+      {
+        label: '课程等级',
+        key: 'level',
+        type: 'select',
+        props: {
+          placeholder: '请选择课程等级',
+          options: levelOptions.value,
+          clearable: true
+        }
+      },
+      {
+        label: '课程简介',
+        key: 'summary',
+        type: 'input',
+        props: {
+          type: 'textarea',
+          rows: 3,
+          placeholder: '请输入课程简介'
+        },
+        span: 24
+      },
+      {
+        label: '封面图',
+        key: 'coverImage',
+        type: 'input',
+        props: { placeholder: '请输入封面图地址' },
+        span: 24
+      },
+      {
+        label: '音频地址',
+        key: 'audioUrl',
+        type: 'input',
+        props: { placeholder: '请输入音频地址' },
+        span: 24
+      },
+      {
+        label: '音频时长',
+        key: 'durationSeconds',
+        type: 'number',
+        props: {
+          min: 0,
+          controlsPosition: 'right',
+          style: { width: '100%' },
+          disabled: true
+        }
+      },
+      {
+        label: '排序',
+        key: 'sortOrder',
+        type: 'number',
+        props: {
+          min: 0,
+          controlsPosition: 'right',
+          style: { width: '100%' }
+        }
+      },
+      {
+        label: '推荐课程',
+        key: 'isFeatured',
+        type: 'switch',
+        span: switchSpan
+      },
+      {
+        label: '每日推荐',
+        key: 'isDaily',
+        type: 'switch',
+        span: switchSpan
+      },
+      {
+        label: '每日日期',
+        key: 'dailyDate',
+        type: 'date',
+        props: {
+          placeholder: '请选择每日推荐日期',
+          valueFormat: 'YYYY-MM-DD',
+          disabled: !form.isDaily
+        }
+      },
+      {
+        label: '启用',
+        key: 'status',
+        type: 'switch',
+        span: switchSpan
+      }
+    ]
   })
 
   const resetForm = () => {
@@ -170,6 +425,8 @@
       transcript: '',
       status: true,
       isFeatured: false,
+      isDaily: false,
+      dailyDate: null,
       sortOrder: 0,
       publishedAt: null
     })
@@ -177,30 +434,18 @@
 
   const initForm = () => {
     if (props.dialogType === 'edit' && props.lessonData) {
-      Object.assign(form, props.lessonData)
+      Object.assign(form, {
+        ...props.lessonData,
+        dailyDate: props.lessonData.dailyDate || null
+      })
     } else {
       resetForm()
     }
 
     nextTick(() => {
-      formRef.value?.clearValidate()
+      formRef.value?.clearValidate?.()
     })
   }
-
-  watch(
-    () => props.modelValue,
-    (val) => {
-      if (val) initForm()
-    }
-  )
-
-  watch(
-    () => props.lessonData,
-    () => {
-      if (props.modelValue) initForm()
-    },
-    { deep: true }
-  )
 
   watch(
     () => props.modelValue,
@@ -208,21 +453,45 @@
       if (val) {
         await getCategoryOptions()
         initForm()
+
+        if (form.id) {
+          await loadSegments(form.id)
+        }
       }
     }
   )
 
+  watch(
+    () => form.isDaily,
+    (val) => {
+      if (!val) {
+        form.dailyDate = null
+      }
+    }
+  )
+
+  const loadSegments = async (lessonId: number) => {
+    try {
+      const res = await fetchLessonSegments(lessonId)
+
+      segments.value = res || []
+    } catch (error) {
+      console.error(error)
+      ElMessage.error('加载字幕失败')
+    }
+  }
+
   const handleClose = () => {
     visible.value = false
     resetForm()
-    formRef.value?.clearValidate()
+    formRef.value?.clearValidate?.()
   }
 
   const handleSubmit = async () => {
     if (!formRef.value) return
 
-    await formRef.value.validate(async (valid) => {
-      if (!valid) return
+    try {
+      await formRef.value.validate()
 
       const payload: Api.ContentManage.LessonCreateParams = {
         categoryId: form.categoryId!,
@@ -236,32 +505,70 @@
         transcript: form.transcript,
         status: form.status,
         isFeatured: form.isFeatured,
-        sortOrder: form.sortOrder,
-        publishedAt: form.publishedAt,
         isDaily: form.isDaily,
-        dailyDate: form.dailyDate
+        dailyDate: form.dailyDate,
+        sortOrder: form.sortOrder,
+        publishedAt: form.publishedAt
       }
 
-      try {
-        if (props.dialogType === 'add') {
-          await createLesson(payload)
-          ElMessage.success('新增成功')
-        } else {
-          if (!form.id) {
-            ElMessage.error('缺少课程ID')
-            return
-          }
-
-          await updateLesson(form.id, payload)
-          ElMessage.success('修改成功')
+      if (props.dialogType === 'add') {
+        await createLesson(payload)
+        ElMessage.success('新增成功')
+      } else {
+        if (!form.id) {
+          ElMessage.error('缺少课程ID')
+          return
         }
 
-        emit('success')
-        handleClose()
-      } catch (error: any) {
-        console.error(error)
-        ElMessage.error(error?.response?.data?.msg || '提交失败')
+        await updateLesson(form.id, payload)
+        ElMessage.success('修改成功')
       }
-    })
+
+      emit('success')
+      handleClose()
+    } catch (error: any) {
+      console.error(error)
+      ElMessage.error(error?.response?.data?.msg || '提交失败')
+    }
   }
 </script>
+
+<style scoped>
+  .demo-tabs {
+    min-height: 520px;
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+    gap: 12px;
+  }
+
+  .segment-import {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .srt-upload {
+    width: 100%;
+  }
+  .segment-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .segment-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .segment-count {
+    margin-left: 12px;
+    color: #909399;
+    font-size: 13px;
+  }
+</style>
