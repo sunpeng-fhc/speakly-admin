@@ -2,82 +2,133 @@
   <ElDialog
     v-model="visible"
     :title="dialogType === 'add' ? '新增课程' : '编辑课程'"
-    width="70%"
+    width="78%"
     align-center
   >
-    <ElTabs type="border-card" class="demo-tabs">
+    <ElTabs type="border-card" class="lesson-tabs">
       <ElTabPane label="基础信息">
-        <ArtForm
-          ref="formRef"
-          v-model="form"
-          :items="formItems"
-          :rules="rules"
-          :span="width > 640 ? 12 : 24"
-          :gutter="20"
-          label-width="100px"
-          :show-reset="false"
-          :show-submit="false"
-        />
+        <div class="lesson-basic-panel">
+          <section class="form-section">
+            <h3>课程基础信息</h3>
 
-        <div class="dialog-footer">
-          <ElButton @click="handleClose">取消</ElButton>
-          <ElButton type="primary" @click="handleSubmit">确定</ElButton>
+            <ArtForm
+              ref="formRef"
+              v-model="form"
+              :items="basicFormItems"
+              :rules="rules"
+              :span="width > 640 ? 12 : 24"
+              :gutter="20"
+              label-width="100px"
+              :show-reset="false"
+              :show-submit="false"
+            />
+          </section>
+
+          <section class="form-section">
+            <h3>媒体资源</h3>
+
+            <ElUpload
+              accept=".mp3,.wav,.m4a"
+              :show-file-list="false"
+              :before-upload="handleAudioUpload"
+            >
+              <ElButton type="primary">上传音频</ElButton>
+            </ElUpload>
+
+            <div v-if="form.audioUrl" class="audio-card">
+              <audio controls :src="form.audioUrl"></audio>
+
+              <div class="audio-meta">
+                <div><strong>音频地址：</strong>{{ form.audioUrl }}</div>
+                <div><strong>音频时长：</strong>{{ formatDuration(form.durationSeconds) }}</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h3>发布设置</h3>
+
+            <ArtForm
+              v-model="form"
+              :items="publishFormItems"
+              :span="width > 640 ? 8 : 24"
+              :gutter="20"
+              label-width="100px"
+              :show-reset="false"
+              :show-submit="false"
+            />
+          </section>
+
+          <div class="dialog-footer">
+            <ElButton @click="handleClose">取消</ElButton>
+            <ElButton type="primary" @click="handleSubmit">确定</ElButton>
+          </div>
         </div>
       </ElTabPane>
 
       <ElTabPane label="文章内容">
-        <ElInput
-          v-model="form.transcript"
-          type="textarea"
-          :rows="12"
-          placeholder="请输入完整课程文章内容"
-        />
+        <div class="readonly-panel">
+          <ElAlert
+            title="课程内容由字幕分句自动生成，如需修改请前往【字幕分句】模块。"
+            type="info"
+            :closable="false"
+            show-icon
+          />
+
+          <ElInput
+            :model-value="form.transcript"
+            type="textarea"
+            :rows="18"
+            readonly
+            placeholder="暂无文章内容，请先上传并解析 SRT 字幕。"
+          />
+        </div>
       </ElTabPane>
 
       <ElTabPane label="字幕分句">
         <div class="segment-panel">
-          <!-- 有字幕：显示字幕列表 -->
           <template v-if="segments.length">
-            <div class="segment-toolbar">
+            <div class="panel-toolbar">
               <div>
                 <strong>字幕分句</strong>
-                <span class="segment-count">共 {{ segments.length }} 条</span>
+                <span class="count-text">共 {{ segments.length }} 条</span>
               </div>
 
               <ElSpace>
                 <ElButton @click="showUploadPanel = true">重新上传 SRT</ElButton>
-                <ElButton type="primary" @click="handleSaveSegments">保存字幕</ElButton>
+                <ElButton @click="addSegment">新增句子</ElButton>
+                <ElButton type="primary" @click="handleSaveSegments">保存修改</ElButton>
               </ElSpace>
             </div>
 
-            <ElTable :data="segments" border height="420">
+            <ElTable :data="segments" border height="430">
               <ElTableColumn prop="sortOrder" label="#" width="70" />
 
-              <ElTableColumn label="开始时间" width="120">
+              <ElTableColumn label="开始时间" width="130">
                 <template #default="{ row }">
                   <ElInputNumber v-model="row.startTime" :precision="3" :step="0.1" />
                 </template>
               </ElTableColumn>
 
-              <ElTableColumn label="结束时间" width="120">
+              <ElTableColumn label="结束时间" width="130">
                 <template #default="{ row }">
                   <ElInputNumber v-model="row.endTime" :precision="3" :step="0.1" />
                 </template>
               </ElTableColumn>
 
-              <ElTableColumn label="英文句子" min-width="300">
+              <ElTableColumn label="英文句子" min-width="320">
                 <template #default="{ row }">
                   <ElInput v-model="row.sentence" type="textarea" :rows="2" />
                 </template>
               </ElTableColumn>
 
-              <ElTableColumn label="中文翻译" min-width="260">
+              <ElTableColumn label="中文翻译" min-width="280">
                 <template #default="{ row }">
                   <ElInput v-model="row.translation" type="textarea" :rows="2" />
                 </template>
               </ElTableColumn>
 
-              <ElTableColumn label="操作" width="100" fixed="right">
+              <ElTableColumn label="操作" width="90" fixed="right">
                 <template #default="{ $index }">
                   <ElButton type="danger" link @click="removeSegment($index)">删除</ElButton>
                 </template>
@@ -85,11 +136,10 @@
             </ElTable>
           </template>
 
-          <!-- 无字幕：显示上传区 -->
           <template v-else>
             <div class="segment-import">
               <ElAlert
-                title="暂无字幕数据，请上传 .srt 字幕文件，系统会解析为课程分句数据。"
+                title="暂无字幕数据，请上传 .srt 字幕文件。系统会解析为课程分句，并自动生成文章内容。"
                 type="info"
                 show-icon
                 :closable="false"
@@ -109,21 +159,13 @@
                 <ElIcon class="el-icon--upload">
                   <UploadFilled />
                 </ElIcon>
-
-                <div class="el-upload__text"> 将 SRT 文件拖到这里，或 <em>点击上传</em> </div>
-
-                <template #tip>
-                  <div class="el-upload__tip">
-                    仅支持 .srt 文件。上传后可解析为开始时间、结束时间、英文句子和中文翻译。
-                  </div>
-                </template>
+                <div class="el-upload__text">将 SRT 文件拖到这里，或 <em>点击上传</em></div>
               </ElUpload>
 
               <ElButton type="primary" @click="handleParseSrt">解析字幕</ElButton>
             </div>
           </template>
 
-          <!-- 有字幕时，重新上传区域 -->
           <ElDialog v-model="showUploadPanel" title="重新上传 SRT" width="40%">
             <ElUpload
               v-model:file-list="fileList"
@@ -138,8 +180,7 @@
               <ElIcon class="el-icon--upload">
                 <UploadFilled />
               </ElIcon>
-
-              <div class="el-upload__text"> 将 SRT 文件拖到这里，或 <em>点击上传</em> </div>
+              <div class="el-upload__text">将 SRT 文件拖到这里，或 <em>点击上传</em></div>
             </ElUpload>
 
             <template #footer>
@@ -149,8 +190,92 @@
           </ElDialog>
         </div>
       </ElTabPane>
-      <ElTabPane label="重点单词">重点单词</ElTabPane>
-      <ElTabPane label="课程预览">课程预览</ElTabPane>
+
+      <ElTabPane label="重点单词">
+        <div class="vocabulary-panel">
+          <div class="panel-toolbar">
+            <div>
+              <strong>课程重点词汇</strong>
+              <span class="count-text">共 {{ vocabularies.length }} 个</span>
+            </div>
+
+            <ElSpace>
+              <ElButton @click="addVocabulary">新增单词</ElButton>
+              <ElButton type="primary" @click="handleSaveVocabularies">保存词汇</ElButton>
+            </ElSpace>
+          </div>
+
+          <ElEmpty v-if="!vocabularies.length" description="暂无重点词汇">
+            <ElButton type="primary" @click="addVocabulary">新增单词</ElButton>
+          </ElEmpty>
+
+          <ElTable v-else :data="vocabularies" border height="430">
+            <ElTableColumn label="#" width="60">
+              <template #default="{ $index }">{{ $index + 1 }}</template>
+            </ElTableColumn>
+
+            <ElTableColumn label="单词" min-width="140">
+              <template #default="{ row }">
+                <ElInput v-model="row.word" />
+              </template>
+            </ElTableColumn>
+
+            <ElTableColumn label="音标" min-width="140">
+              <template #default="{ row }">
+                <ElInput v-model="row.phonetic" placeholder="/.../" />
+              </template>
+            </ElTableColumn>
+
+            <ElTableColumn label="词性" width="140">
+              <template #default="{ row }">
+                <ElSelect v-model="row.partOfSpeech">
+                  <ElOption label="noun" value="noun" />
+                  <ElOption label="verb" value="verb" />
+                  <ElOption label="adjective" value="adjective" />
+                  <ElOption label="adverb" value="adverb" />
+                  <ElOption label="phrase" value="phrase" />
+                </ElSelect>
+              </template>
+            </ElTableColumn>
+
+            <ElTableColumn label="中文意思" min-width="160">
+              <template #default="{ row }">
+                <ElInput v-model="row.meaning" />
+              </template>
+            </ElTableColumn>
+
+            <ElTableColumn label="英文解释" min-width="240">
+              <template #default="{ row }">
+                <ElInput v-model="row.simpleDefinition" type="textarea" :rows="2" />
+              </template>
+            </ElTableColumn>
+
+            <ElTableColumn label="例句" min-width="260">
+              <template #default="{ row }">
+                <ElInput v-model="row.exampleSentence" type="textarea" :rows="2" />
+              </template>
+            </ElTableColumn>
+
+            <ElTableColumn label="操作" width="90" fixed="right">
+              <template #default="{ $index }">
+                <ElButton type="danger" link @click="removeVocabulary($index)">删除</ElButton>
+              </template>
+            </ElTableColumn>
+          </ElTable>
+        </div>
+      </ElTabPane>
+
+      <ElTabPane label="课程预览">
+        <div class="preview-panel">
+          <audio v-if="form.audioUrl" controls :src="form.audioUrl" />
+
+          <ElEmpty v-else description="暂无音频，请先上传音频" />
+
+          <div v-if="form.transcript" class="preview-transcript">
+            {{ form.transcript }}
+          </div>
+        </div>
+      </ElTabPane>
     </ElTabs>
   </ElDialog>
 </template>
@@ -162,10 +287,15 @@
     fetchGetCategoryList,
     createLesson,
     updateLesson,
-    fetchLessonSegments
+    fetchLessonSegments,
+    fetchLessonVocabularies,
+    importSrt,
+    saveLessonSegments,
+    saveLessonVocabularies
   } from '@/api/content-manage'
+  import { uploadAudio } from '@/api/content-manage'
   import { UploadFilled } from '@element-plus/icons-vue'
-  import type { UploadFile, UploadFiles } from 'element-plus'
+  import type { UploadFile } from 'element-plus'
 
   const fileList = ref<UploadFile[]>([])
 
@@ -199,27 +329,57 @@
 
   // 解析srt并覆盖srt
   const handleParseSrt = async () => {
+    if (!form.id) {
+      ElMessage.warning('请先保存课程基础信息')
+      return
+    }
+
     if (!fileList.value.length) {
       ElMessage.warning('请先上传 SRT 文件')
       return
     }
 
-    // 下一步这里调用后端 SRT 解析接口
-    // const res = await importSrt({ lessonId: form.id, file: fileList.value[0].raw })
-    // segments.value = res.records
+    const file = fileList.value[0]?.raw
 
-    showUploadPanel.value = false
+    if (!file) {
+      ElMessage.warning('文件读取失败')
+      return
+    }
+
+    // 下一步这里调用后端 SRT 解析接口
+    const res = await importSrt(form.id, file)
+
+    segments.value = res || []
+
     ElMessage.success('字幕解析成功')
   }
 
   //保存字幕
   const handleSaveSegments = async () => {
-    // 下一步这里调用保存字幕接口
-    // await saveLessonSegments(form.id, segments.value)
+    if (!form.id) {
+      ElMessage.warning('请先保存课程基础信息')
+      return
+    }
+
+    if (!segments.value.length) {
+      ElMessage.warning('暂无字幕数据可保存')
+      return
+    }
+
+    const invalidSegment = segments.value.find(
+      (item) => !item.sentence || item.startTime == null || item.endTime == null
+    )
+
+    if (invalidSegment) {
+      ElMessage.warning('请检查字幕内容、开始时间和结束时间')
+      return
+    }
+
+    const res = await saveLessonSegments(form.id, segments.value)
+    segments.value = res || []
 
     ElMessage.success('字幕保存成功')
   }
-
   type LessonListItem = Api.ContentManage.LessonListItem
 
   interface Props {
@@ -298,88 +458,72 @@
     audioUrl: [{ required: true, message: '请输入音频地址', trigger: 'blur' }]
   })
 
-  const formItems = computed<FormItem[]>(() => {
+  const basicFormItems = computed<FormItem[]>(() => [
+    {
+      label: '课程标题',
+      key: 'title',
+      type: 'input',
+      props: { placeholder: '请输入课程标题' }
+    },
+    {
+      label: '课程标识',
+      key: 'slug',
+      type: 'input',
+      props: { placeholder: '例如 how-to-introduce-yourself' }
+    },
+    {
+      label: '课程分类',
+      key: 'categoryId',
+      type: 'select',
+      props: {
+        placeholder: '请选择课程分类',
+        options: categoryOptions.value,
+        clearable: true
+      }
+    },
+    {
+      label: '课程等级',
+      key: 'level',
+      type: 'select',
+      props: {
+        placeholder: '请选择课程等级',
+        options: levelOptions.value
+      }
+    },
+    {
+      label: '课程简介',
+      key: 'summary',
+      type: 'input',
+      props: {
+        type: 'textarea',
+        rows: 3,
+        placeholder: '请输入课程简介'
+      },
+      span: 24
+    },
+    {
+      label: '封面图',
+      key: 'coverImage',
+      type: 'input',
+      props: { placeholder: '请输入封面图地址' },
+      span: 24
+    },
+    {
+      label: '排序',
+      key: 'sortOrder',
+      type: 'number',
+      props: {
+        min: 0,
+        controlsPosition: 'right',
+        style: { width: '100%' }
+      }
+    }
+  ])
+
+  const publishFormItems = computed<FormItem[]>(() => {
     const switchSpan = width.value < 640 ? 12 : 6
 
     return [
-      {
-        label: '课程标题',
-        key: 'title',
-        type: 'input',
-        props: { placeholder: '请输入课程标题' }
-      },
-      {
-        label: '课程标识',
-        key: 'slug',
-        type: 'input',
-        props: { placeholder: '请输入课程标识，例如 morning-coffee' }
-      },
-      {
-        label: '课程分类',
-        key: 'categoryId',
-        type: 'select',
-        props: {
-          placeholder: '请选择课程分类',
-          options: categoryOptions.value,
-          clearable: true
-        }
-      },
-      {
-        label: '课程等级',
-        key: 'level',
-        type: 'select',
-        props: {
-          placeholder: '请选择课程等级',
-          options: levelOptions.value,
-          clearable: true
-        }
-      },
-      {
-        label: '课程简介',
-        key: 'summary',
-        type: 'input',
-        props: {
-          type: 'textarea',
-          rows: 3,
-          placeholder: '请输入课程简介'
-        },
-        span: 24
-      },
-      {
-        label: '封面图',
-        key: 'coverImage',
-        type: 'input',
-        props: { placeholder: '请输入封面图地址' },
-        span: 24
-      },
-      {
-        label: '音频地址',
-        key: 'audioUrl',
-        type: 'input',
-        props: { placeholder: '请输入音频地址' },
-        span: 24
-      },
-      {
-        label: '音频时长',
-        key: 'durationSeconds',
-        type: 'number',
-        props: {
-          min: 0,
-          controlsPosition: 'right',
-          style: { width: '100%' },
-          disabled: true
-        }
-      },
-      {
-        label: '排序',
-        key: 'sortOrder',
-        type: 'number',
-        props: {
-          min: 0,
-          controlsPosition: 'right',
-          style: { width: '100%' }
-        }
-      },
       {
         label: '推荐课程',
         key: 'isFeatured',
@@ -410,6 +554,17 @@
       }
     ]
   })
+
+  const addSegment = () => {
+    segments.value.push({
+      lessonId: form.id,
+      startTime: 0,
+      endTime: 0,
+      sentence: '',
+      translation: '',
+      sortOrder: segments.value.length + 1
+    })
+  }
 
   const resetForm = () => {
     Object.assign(form, {
@@ -456,6 +611,7 @@
 
         if (form.id) {
           await loadSegments(form.id)
+          await loadVocabularies(form.id)
         }
       }
     }
@@ -531,18 +687,169 @@
       ElMessage.error(error?.response?.data?.msg || '提交失败')
     }
   }
+
+  const loadVocabularies = async (lessonId: number) => {
+    const res = await fetchLessonVocabularies(lessonId)
+
+    vocabularies.value = res || []
+  }
+
+  interface LessonVocabularyItem {
+    id?: number
+    lessonId?: number
+    word: string
+    phonetic: string
+    partOfSpeech: string
+    meaning: string
+    simpleDefinition: string
+    exampleSentence: string
+    sortOrder: number
+  }
+
+  const vocabularies = ref<LessonVocabularyItem[]>([])
+
+  const addVocabulary = () => {
+    vocabularies.value.push({
+      lessonId: form.id,
+      word: '',
+      phonetic: '',
+      partOfSpeech: '',
+      meaning: '',
+      simpleDefinition: '',
+      exampleSentence: '',
+      sortOrder: vocabularies.value.length + 1
+    })
+  }
+
+  const removeVocabulary = (index: number) => {
+    vocabularies.value.splice(index, 1)
+
+    vocabularies.value.forEach((item, i) => {
+      item.sortOrder = i + 1
+    })
+  }
+
+  const handleSaveVocabularies = async () => {
+    if (!form.id) {
+      ElMessage.warning('请先保存课程基础信息')
+      return
+    }
+
+    const invalidItem = vocabularies.value.find((item) => !item.word || !item.meaning)
+
+    if (invalidItem) {
+      ElMessage.warning('请填写单词和中文意思')
+      return
+    }
+
+    // TODO: 调用后端保存接口
+    await saveLessonVocabularies(form.id, vocabularies.value)
+    ElMessage.success('重点词汇保存成功')
+  }
+
+  const handleAudioUpload = async (file: File) => {
+    try {
+      const res = await uploadAudio(file)
+
+      form.audioUrl = res.url
+
+      const duration = await getAudioDuration(res.url)
+      form.durationSeconds = duration
+
+      ElMessage.success('音频上传成功')
+    } catch (error) {
+      console.error(error)
+      ElMessage.error('音频上传失败')
+    }
+
+    return false
+  }
+  const getAudioDuration = (url: string): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const audio = new Audio(url)
+
+      audio.addEventListener('loadedmetadata', () => {
+        resolve(Math.round(audio.duration))
+      })
+
+      audio.addEventListener('error', () => {
+        reject(new Error('音频时长读取失败'))
+      })
+    })
+  }
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return '-'
+
+    const min = Math.floor(seconds / 60)
+    const sec = seconds % 60
+
+    return `${min}:${String(sec).padStart(2, '0')}`
+  }
 </script>
 
 <style scoped>
-  .demo-tabs {
-    min-height: 520px;
+  .lesson-tabs {
+    min-height: 620px;
   }
 
-  .dialog-footer {
+  .lesson-basic-panel,
+  .segment-panel,
+  .vocabulary-panel,
+  .preview-panel,
+  .readonly-panel {
     display: flex;
-    justify-content: flex-end;
-    margin-top: 24px;
-    gap: 12px;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .form-section {
+    padding: 20px;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 8px;
+    background: var(--el-bg-color);
+  }
+
+  .form-section h3 {
+    margin: 0 0 18px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .audio-card {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 8px;
+    background: var(--el-fill-color-lighter);
+  }
+
+  .audio-card audio,
+  .preview-panel audio {
+    width: 420px;
+    max-width: 100%;
+  }
+
+  .audio-meta {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #909399;
+    font-size: 13px;
+    word-break: break-all;
+  }
+
+  .panel-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .count-text {
+    margin-left: 12px;
+    color: #909399;
+    font-size: 13px;
   }
 
   .segment-import {
@@ -554,21 +861,20 @@
   .srt-upload {
     width: 100%;
   }
-  .segment-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+
+  .preview-transcript {
+    padding: 16px;
+    white-space: pre-line;
+    line-height: 1.8;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 8px;
+    background: var(--el-fill-color-lighter);
   }
 
-  .segment-toolbar {
+  .dialog-footer {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .segment-count {
-    margin-left: 12px;
-    color: #909399;
-    font-size: 13px;
+    justify-content: flex-end;
+    margin-top: 8px;
+    gap: 12px;
   }
 </style>

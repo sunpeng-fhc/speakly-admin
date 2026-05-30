@@ -296,5 +296,69 @@ declare namespace Api {
       translation?: string
       sortOrder: number
     }
+
+    /** 课程重点词汇列表 */
+    type LessonVocabularyList = LessonVocabularyItem[]
+
+    /** 课程重点词汇 */
+    interface LessonVocabularyItem {
+      id?: number
+
+      /** 所属课程ID */
+      lessonId?: number
+
+      /** 单词 */
+      word: string
+
+      /** 音标 */
+      phonetic: string
+
+      /** 词性 */
+      partOfSpeech: string
+
+      /** 中文释义 */
+      meaning: string
+
+      /** 简单英文解释 */
+      simpleDefinition: string
+
+      /** 例句 */
+      exampleSentence: string
+
+      /** 排序 */
+      sortOrder: number
+
+      /** 创建时间 */
+      createdAt?: string
+    }
+
+    /** 新增重点词汇 */
+    interface LessonVocabularyCreateParams {
+      lessonId: number
+      word: string
+      phonetic: string
+      partOfSpeech: string
+      meaning: string
+      simpleDefinition: string
+      exampleSentence: string
+      sortOrder: number
+    }
+
+    /** 修改重点词汇 */
+    interface LessonVocabularyUpdateParams {
+      word: string
+      phonetic: string
+      partOfSpeech: string
+      meaning: string
+      simpleDefinition: string
+      exampleSentence: string
+      sortOrder: number
+    }
+
+    /** 批量保存课程词汇 */
+    interface LessonVocabularyBatchSaveParams {
+      lessonId: number
+      vocabularies: LessonVocabularyItem[]
+    }
   }
 }

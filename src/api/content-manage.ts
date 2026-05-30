@@ -66,3 +66,59 @@ export function fetchLessonSegments(lessonId: number) {
     url: `/api/lesson-segment/list/${lessonId}`
   })
 }
+
+export function fetchLessonVocabularies(lessonId: number) {
+  return request.get<Api.ContentManage.LessonVocabularyItem[]>({
+    url: `/api/lesson-vocabulary/list/${lessonId}`
+  })
+}
+
+export function importSrt(lessonId: number, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return request.post<Api.ContentManage.LessonSegmentItem[]>({
+    url: `/api/lesson-segment/import-srt/${lessonId}`,
+    data: formData
+  })
+}
+
+export function saveLessonSegments(
+  lessonId: number,
+  segments: Api.ContentManage.LessonSegmentItem[]
+) {
+  return request.post<Api.ContentManage.LessonSegmentItem[]>({
+    url: `/api/lesson-segment/save/${lessonId}`,
+    data: segments
+  })
+}
+
+export function saveLessonVocabularies(
+  lessonId: number,
+  vocabularies: Api.ContentManage.LessonVocabularyItem[]
+) {
+  return request.post<Api.ContentManage.LessonVocabularyItem[]>({
+    url: `/api/lesson-vocabulary/save/${lessonId}`,
+    data: vocabularies
+  })
+}
+
+export function uploadAudio(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return request.post<{ url: string }>({
+    url: '/api/upload/audio',
+    data: formData
+  })
+}
+
+export function uploadImage(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return request.post<{ url: string }>({
+    url: '/api/upload/image',
+    data: formData
+  })
+}

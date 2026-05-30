@@ -164,31 +164,6 @@
           }
         },
         {
-          prop: 'isDaily',
-          label: '每日推荐',
-          width: 100,
-          formatter: (row) => {
-            const statusConfig = row.isDaily
-              ? { type: 'success', text: '推荐' }
-              : { type: 'warning', text: '不推荐' }
-            return h(
-              ElTag,
-              { type: statusConfig.type as 'success' | 'warning' },
-              () => statusConfig.text
-            )
-          }
-        },
-        {
-          prop: 'dailyDate',
-          label: '每日日期',
-          width: 180,
-          sortable: true,
-          formatter: (row: LessonListItem) => {
-            if (!row.dailyDate) return '-'
-            return dayjs(row.dailyDate).format('YYYY-MM-DD')
-          }
-        },
-        {
           prop: 'createdAt',
           label: '创建日期',
           width: 180,
