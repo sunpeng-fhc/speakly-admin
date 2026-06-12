@@ -109,6 +109,11 @@
           minWidth: 120
         },
         {
+          prop: 'shortName',
+          label: '分类简称',
+          minWidth: 120
+        },
+        {
           prop: 'slug',
           label: '分类编码',
           minWidth: 100

@@ -9,11 +9,28 @@
       <ElFormItem label="分类名称" prop="name">
         <ElInput v-model="formData.name" placeholder="请输入分类名称" />
       </ElFormItem>
+      <ElFormItem label="分类简称" prop="shortName">
+        <ElInput v-model="formData.shortName" placeholder="请输入分类简称" />
+      </ElFormItem>
       <ElFormItem label="分类标识" prop="slug">
         <ElInput v-model="formData.slug" placeholder="请输入分类标识" />
       </ElFormItem>
       <ElFormItem label="分类描述" prop="description">
         <ElInput v-model="formData.description" placeholder="请输入分类描述" />
+      </ElFormItem>
+      <ElFormItem label="封面图片" prop="coverImage">
+        <ElUpload
+          class="cover-uploader"
+          :show-file-list="false"
+          :http-request="handleCoverUpload"
+          accept="image/*"
+        >
+          <img v-if="formData.coverImage" :src="formData.coverImage" class="cover-preview" />
+          <div v-else class="cover-upload-placeholder">
+            <ElIcon><Plus /></ElIcon>
+            <span>上传图片</span>
+          </div>
+        </ElUpload>
       </ElFormItem>
       <ElFormItem label="启用">
         <ElSwitch v-model="formData.status" />
@@ -31,9 +48,10 @@
 <script setup lang="ts">
   import type { FormInstance, FormRules } from 'element-plus'
   //修改分类
-  import { updateCategory } from '@/api/content-manage'
-  // 添加分类
-  import { createCategory } from '@/api/content-manage'
+  import { updateCategory, createCategory, uploadImage } from '@/api/content-manage'
+
+  import { Plus } from '@element-plus/icons-vue'
+  import type { UploadRequestOptions } from 'element-plus'
 
   interface Props {
     visible: boolean
@@ -63,8 +81,10 @@
   const formData = reactive<Api.ContentManage.CategoryForm>({
     id: undefined,
     name: '',
+    shortName: '',
     slug: '',
     description: '',
+    coverImage: '',
     status: true
   })
 
@@ -74,6 +94,10 @@
       { required: true, message: '请输入分类名称', trigger: 'blur' },
       { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
     ],
+    shortName: [
+      { required: true, message: '请输入分类简称', trigger: 'blur' },
+      { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+    ],
     slug: [
       { required: true, message: '请输入分类标识', trigger: 'blur' },
       { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
@@ -81,7 +105,8 @@
     description: [
       { required: true, message: '请输入分类描述', trigger: 'blur' },
       { min: 2, max: 200, message: '长度在 2 到 200 个字符', trigger: 'blur' }
-    ]
+    ],
+    coverImage: [{ required: true, message: '请上传封面图片', trigger: 'change' }]
   }
 
   /**
@@ -91,13 +116,13 @@
   const initFormData = () => {
     const isEdit = props.type === 'edit' && props.categoryData
     const row = props.categoryData
-
     Object.assign(formData, {
       id: isEdit && row ? row.id : undefined,
       name: isEdit && row ? row.name || '' : '',
       slug: isEdit && row ? row.slug || '' : '',
       description: isEdit && row ? row.description || '' : '',
-      status: isEdit && row ? (row.status ?? true) : true
+      status: isEdit && row ? (row.status ?? true) : true,
+      coverImage: isEdit && row ? row.coverImage || '' : ''
     })
   }
 
@@ -118,6 +143,19 @@
     { immediate: true }
   )
 
+  const handleCoverUpload = async (options: UploadRequestOptions) => {
+    try {
+      const file = options.file as File
+
+      const res = await uploadImage(file)
+      console.log(res)
+      formData.coverImage = res.url
+      formRef.value?.validateField('coverImage')
+      ElMessage.success('图片上传成功')
+    } catch (error) {
+      ElMessage.error('图片上传失败')
+    }
+  }
   /**
    * 提交表单
    * 验证通过后触发提交事件
@@ -131,9 +169,11 @@
       try {
         const payload: Api.ContentManage.CategoryCreateParams = {
           name: formData.name,
+          shortName: formData.shortName,
           slug: formData.slug,
           description: formData.description,
-          status: formData.status
+          status: formData.status,
+          coverImage: formData.coverImage
         }
 
         if (dialogType.value === 'add') {
@@ -157,3 +197,30 @@
     })
   }
 </script>
+<style>
+  .cover-uploader {
+    width: 120px;
+    height: 120px;
+  }
+
+  .cover-preview {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+  }
+
+  .cover-upload-placeholder {
+    width: 120px;
+    height: 120px;
+    border: 1px dashed #dcdfe6;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    cursor: pointer;
+  }
+</style>

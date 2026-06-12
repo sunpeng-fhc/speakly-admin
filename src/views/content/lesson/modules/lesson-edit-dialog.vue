@@ -41,7 +41,6 @@
 
                 <div v-if="form.coverImage" class="cover-preview">
                   <img :src="form.coverImage" alt="cover" />
-                  <div class="media-url">{{ form.coverImage }}</div>
                 </div>
               </div>
 
@@ -559,16 +558,6 @@
         placeholder: '请输入课程简介'
       },
       span: 24
-    },
-    {
-      label: '排序',
-      key: 'sortOrder',
-      type: 'number',
-      props: {
-        min: 0,
-        controlsPosition: 'right',
-        style: { width: '100%' }
-      }
     }
   ])
 

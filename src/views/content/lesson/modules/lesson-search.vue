@@ -6,22 +6,42 @@
     :rules="rules"
     @reset="handleReset"
     @search="handleSearch"
-  >
-  </ArtSearchBar>
+  />
 </template>
 
 <script setup lang="ts">
-  type RoleSearchFormParams = Api.SystemManage.RoleSearchParams & {
+  import { fetchGetCategoryList } from '@/api/content-manage'
+
+  const categoryOptions = ref<{ label: string; value: number }[]>([])
+
+  const getCategoryOptions = async () => {
+    const res = await fetchGetCategoryList({
+      current: 1,
+      size: 100,
+      status: true
+    })
+
+    categoryOptions.value = (res.records || []).map((item) => ({
+      label: item.name,
+      value: item.id
+    }))
+  }
+
+  onMounted(() => {
+    getCategoryOptions()
+  })
+
+  type LessonSearchFormParams = Api.ContentManage.LessonSearchParams & {
     daterange?: string[]
   }
 
   interface Props {
-    modelValue: RoleSearchFormParams
+    modelValue: LessonSearchFormParams
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: RoleSearchFormParams): void
-    (e: 'search', params: RoleSearchFormParams): void
+    (e: 'update:modelValue', value: LessonSearchFormParams): void
+    (e: 'search', params: LessonSearchFormParams): void
     (e: 'reset'): void
   }
 
@@ -30,59 +50,95 @@
 
   const searchBarRef = ref()
 
-  /**
-   * 表单数据双向绑定
-   */
   const formData = computed({
     get: () => props.modelValue,
     set: (val) => emit('update:modelValue', val)
   })
 
-  /**
-   * 表单校验规则
-   */
   const rules = {}
 
-  /**
-   * 角色状态选项
-   */
+  const levelOptions = ref([
+    { label: 'A1', value: 'A1' },
+    { label: 'A2', value: 'A2' }
+  ])
+
   const statusOptions = ref([
     { label: '启用', value: true },
     { label: '禁用', value: false }
   ])
 
-  /**
-   * 搜索表单配置项
-   */
+  const featuredOptions = ref([
+    { label: '推荐', value: true },
+    { label: '不推荐', value: false }
+  ])
+
+  const dailyOptions = ref([
+    { label: '每日推荐', value: true },
+    { label: '非每日推荐', value: false }
+  ])
+
   const formItems = computed(() => [
     {
-      label: '角色名称',
-      key: 'roleName',
+      label: '课程标题',
+      key: 'title',
       type: 'input',
-      placeholder: '请输入角色名称',
+      placeholder: '请输入课程标题',
       clearable: true
     },
     {
-      label: '角色编码',
-      key: 'roleCode',
+      label: '课程标识',
+      key: 'slug',
       type: 'input',
-      placeholder: '请输入角色编码',
+      placeholder: '请输入课程标识',
       clearable: true
     },
     {
-      label: '角色描述',
-      key: 'description',
-      type: 'input',
-      placeholder: '请输入角色描述',
-      clearable: true
+      label: '课程分类',
+      key: 'categoryId',
+      type: 'select',
+      props: {
+        placeholder: '请选择课程分类',
+        options: categoryOptions.value,
+        clearable: true
+      }
     },
     {
-      label: '角色状态',
-      key: 'enabled',
+      label: '课程等级',
+      key: 'level',
+      type: 'select',
+      props: {
+        placeholder: '请选择课程等级',
+        options: levelOptions.value,
+        clearable: true
+      }
+    },
+    {
+      label: '课程状态',
+      key: 'status',
       type: 'select',
       props: {
         placeholder: '请选择状态',
         options: statusOptions.value,
+        clearable: true
+      }
+    },
+    {
+      label: '推荐课程',
+      key: 'isFeatured',
+      type: 'select',
+      props: {
+        placeholder: '请选择是否推荐',
+        options: featuredOptions.value,
+        clearable: true
+      }
+    },
+    {
+      label: '每日推荐',
+      key: 'isDaily',
+      type: 'select',
+      props: {
+        placeholder: '请选择每日推荐',
+        options: dailyOptions.value,
         clearable: true
       }
     },
@@ -107,18 +163,11 @@
     }
   ])
 
-  /**
-   * 处理重置事件
-   */
   const handleReset = () => {
     emit('reset')
   }
 
-  /**
-   * 处理搜索事件
-   * 验证表单后触发搜索
-   */
-  const handleSearch = async (params: RoleSearchFormParams) => {
+  const handleSearch = async (params: LessonSearchFormParams) => {
     await searchBarRef.value.validate()
     emit('search', params)
   }

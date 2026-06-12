@@ -144,37 +144,45 @@ declare namespace Api {
     interface CategoryListItem {
       id: number
       name: string
+      shortName: string
       slug: string
       status: boolean
       createdAt: string
       description: string
+      coverImage: string
     }
 
     interface CategoryForm {
       id?: number
       name: string
+      shortName: string
       slug: string
       description: string
       status: boolean
+      coverImage: string
     }
 
     interface CategoryCreateParams {
       name: string
+      shortName: string
       slug: string
       description: string
       status: boolean
+      coverImage: string
     }
 
     interface CategoryUpdateParams {
       name: string
+      shortName: string
       slug: string
       description: string
       status: boolean
+      coverImage: string
     }
 
     /** 分类搜索参数 */
     type CategorySearchParams = Partial<
-      Pick<CategoryListItem, 'id' | 'name' | 'slug' | 'description' | 'status'> &
+      Pick<CategoryListItem, 'id' | 'name' | 'shortName' | 'slug' | 'description' | 'status'> &
         Api.Common.CommonSearchParams & {
           startTime: string | null
           endTime: string | null
@@ -270,15 +278,7 @@ declare namespace Api {
     type LessonSearchParams = Partial<
       Pick<
         LessonListItem,
-        | 'id'
-        | 'categoryId'
-        | 'categoryName'
-        | 'title'
-        | 'slug'
-        | 'level'
-        | 'status'
-        | 'isFeatured'
-        | 'isDaily'
+        'id' | 'title' | 'slug' | 'level' | 'status' | 'isFeatured' | 'isDaily' | 'categoryId'
       > &
         Api.Common.CommonSearchParams & {
           startTime: string | null
