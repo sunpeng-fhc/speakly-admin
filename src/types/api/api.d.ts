@@ -172,6 +172,7 @@ declare namespace Api {
     }
 
     interface CategoryUpdateParams {
+      id?: number
       name: string
       shortName: string
       slug: string

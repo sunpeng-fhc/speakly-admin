@@ -78,7 +78,7 @@
   const formRef = ref<FormInstance>()
 
   // 表单数据
-  const formData = reactive<Api.ContentManage.CategoryForm>({
+  const formData = reactive<Api.ContentManage.CategoryUpdateParams>({
     id: undefined,
     name: '',
     shortName: '',
@@ -119,6 +119,7 @@
     Object.assign(formData, {
       id: isEdit && row ? row.id : undefined,
       name: isEdit && row ? row.name || '' : '',
+      shortName: isEdit && row ? row.shortName || '' : '',
       slug: isEdit && row ? row.slug || '' : '',
       description: isEdit && row ? row.description || '' : '',
       status: isEdit && row ? (row.status ?? true) : true,
