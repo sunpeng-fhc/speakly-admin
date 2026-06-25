@@ -290,7 +290,9 @@
     if (!props.editData) return
 
     isEdit.value = true
-
+    console.log('加载表单数据')
+    console.log(props.editData)
+    console.log(form)
     if (form.menuType === 'menu') {
       const row = props.editData
       form.id = row.id || 0
@@ -299,12 +301,12 @@
       form.label = row.name || ''
       form.component = row.component || ''
       form.icon = row.meta?.icon || ''
-      form.sort = row.meta?.sort || 1
+      form.sort = row.sortOrder || 1
       form.isMenu = row.meta?.isMenu ?? true
       form.keepAlive = row.meta?.keepAlive ?? false
-      form.isHide = row.meta?.isHide ?? false
-      form.isHideTab = row.meta?.isHideTab ?? false
-      form.isEnable = row.meta?.isEnable ?? true
+      form.isHide = row.meta?.hideInMenu ?? false
+      form.isHideTab = row.meta?.hideInTab ?? false
+      form.isEnable = row.meta?.enabled ?? true
       form.link = row.meta?.link || ''
       form.isIframe = row.meta?.isIframe ?? false
       form.showBadge = row.meta?.showBadge ?? false
@@ -312,7 +314,7 @@
       form.fixedTab = row.meta?.fixedTab ?? false
       form.activePath = row.meta?.activePath || ''
       form.roles = row.meta?.roles || []
-      form.isFullPage = row.meta?.isFullPage ?? false
+      form.isFullPage = row.meta?.fullPage ?? false
     } else {
       const row = props.editData
       form.authName = row.title || ''
@@ -330,9 +332,12 @@
 
     try {
       await formRef.value.validate()
+
+      console.log('提交表单数据:', form)
+      console.log('提交表单数据(JSON):', JSON.stringify(form, null, 2))
       emit('submit', { ...form })
-      ElMessage.success(`${isEdit.value ? '编辑' : '新增'}成功`)
-      handleCancel()
+      // ElMessage.success(`${isEdit.value ? '编辑' : '新增'}成功`)
+      // handleCancel()
     } catch {
       ElMessage.error('表单校验失败，请检查输入')
     }

@@ -12,9 +12,9 @@
         ref="treeRef"
         :data="processedMenuList"
         show-checkbox
-        node-key="name"
+        node-key="id"
         :default-expand-all="isExpandAll"
-        :default-checked-keys="[1, 2, 3]"
+        :default-checked-keys="checkedMenuIds"
         :props="defaultProps"
         @check="handleTreeCheck"
       >
@@ -43,6 +43,7 @@
 <script setup lang="ts">
   import { useMenuStore } from '@/store/modules/menu'
   import { formatMenuTitle } from '@/utils/router'
+  import { fetchRoleMenuIds, saveRoleMenus, saveRolePermissions } from '@/api/system-manage'
 
   type RoleListItem = Api.SystemManage.RoleListItem
 
@@ -67,6 +68,8 @@
   const treeRef = ref()
   const isExpandAll = ref(true)
   const isSelectAll = ref(false)
+
+  const checkedMenuIds = ref<number[]>([])
 
   /**
    * 弹窗显示状态双向绑定
@@ -141,10 +144,14 @@
    */
   watch(
     () => props.modelValue,
-    (newVal) => {
-      if (newVal && props.roleData) {
-        // TODO: 根据角色加载对应的权限数据
-        console.log('设置权限:', props.roleData)
+    async (newVal) => {
+      if (newVal && props.roleData?.roleId) {
+        const ids = await fetchRoleMenuIds(props.roleData.roleId)
+        checkedMenuIds.value = ids
+
+        nextTick(() => {
+          treeRef.value?.setCheckedKeys(ids)
+        })
       }
     }
   )
@@ -154,14 +161,37 @@
    */
   const handleClose = () => {
     visible.value = false
+    checkedMenuIds.value = []
+    isSelectAll.value = false
     treeRef.value?.setCheckedKeys([])
   }
 
   /**
    * 保存权限配置
    */
-  const savePermission = () => {
-    // TODO: 调用保存权限接口
+  const savePermission = async () => {
+    if (!props.roleData?.roleId) {
+      ElMessage.error('角色ID不存在')
+      return
+    }
+
+    const checkedKeys = treeRef.value?.getCheckedKeys() || []
+    const halfCheckedKeys = treeRef.value?.getHalfCheckedKeys() || []
+
+    const allKeys = [...checkedKeys, ...halfCheckedKeys]
+
+    const menuIds = allKeys.filter((key) => typeof key === 'number') as number[]
+
+    const buttonCodes = checkedKeys
+      .filter((key) => typeof key === 'string')
+      .map((key) => String(key).split('_').slice(1).join('_'))
+
+    await saveRolePermissions({
+      roleId: props.roleData.roleId,
+      menuIds,
+      buttonCodes
+    })
+
     ElMessage.success('权限保存成功')
     emit('success')
     handleClose()
@@ -205,14 +235,21 @@
    * @param nodes 节点列表
    * @returns 所有节点的 key 数组
    */
-  const getAllNodeKeys = (nodes: MenuNode[]): string[] => {
-    const keys: string[] = []
+  const getAllNodeKeys = (nodes: MenuNode[]): Array<string | number> => {
+    const keys: Array<string | number> = []
+
     const traverse = (nodeList: MenuNode[]): void => {
       nodeList.forEach((node) => {
-        if (node.name) keys.push(node.name)
-        if (node.children?.length) traverse(node.children)
+        if (node.id !== undefined && node.id !== null) {
+          keys.push(node.id)
+        }
+
+        if (node.children?.length) {
+          traverse(node.children)
+        }
       })
     }
+
     traverse(nodes)
     return keys
   }

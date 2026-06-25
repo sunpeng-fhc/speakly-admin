@@ -74,6 +74,8 @@ export interface RouteMeta extends Record<string | number | symbol, unknown> {
  */
 export interface AppRouteRecord extends Omit<RouteRecordRaw, 'meta' | 'children' | 'component'> {
   id?: number
+  parentId?: number | null
+  sortOrder?: number
   meta: RouteMeta
   children?: AppRouteRecord[]
   component?: string | (() => Promise<any>)

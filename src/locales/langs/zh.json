@@ -268,7 +268,8 @@
       "title": "内容管理",
       "category": "分类管理",
       "lesson": "课程管理",
-      "dailyLesson": "每日课程"
+      "dailyLesson": "每日课程",
+      "draft": "草稿中心"
     }
   },
   "table": {

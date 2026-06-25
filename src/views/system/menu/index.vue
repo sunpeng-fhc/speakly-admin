@@ -55,7 +55,7 @@
   import { useTableColumns } from '@/hooks/core/useTableColumns'
   import type { AppRouteRecord } from '@/types/router'
   import MenuDialog from './modules/menu-dialog.vue'
-  import { fetchGetMenuList } from '@/api/system-manage'
+  import { fetchGetMenuList, createMenu, updateMenu } from '@/api/system-manage'
   import { ElTag, ElMessageBox } from 'element-plus'
 
   defineOptions({ name: 'Menus' })
@@ -184,7 +184,8 @@
       label: '编辑时间',
       formatter: (row: AppRouteRecord) => {
         if (!row.meta.date) return '-'
-        return row.meta.date.replace('T', ' ').slice(0, 19)
+
+        return String(row.meta.date).replace('T', ' ').slice(0, 19)
       }
     },
     {
@@ -220,8 +221,8 @@
         return h('div', buttonStyle, [
           h(ArtButtonTable, {
             type: 'add',
-            onClick: () => handleAddAuth(),
-            title: '新增权限'
+            onClick: () => handleAddChild(row),
+            title: '新增子菜单'
           }),
           h(ArtButtonTable, {
             type: 'edit',
@@ -365,13 +366,16 @@
     dialogType.value = 'menu'
     editData.value = null
     lockMenuType.value = true
+    parentMenuId.value = null
     dialogVisible.value = true
   }
+
+  const parentMenuId = ref<number | null>(null)
 
   /**
    * 添加权限按钮
    */
-  const handleAddAuth = (): void => {
+  const handleAddAuth = (row: AppRouteRecord): void => {
     dialogType.value = 'menu'
     editData.value = null
     lockMenuType.value = false
@@ -386,6 +390,7 @@
     dialogType.value = 'menu'
     editData.value = row
     lockMenuType.value = true
+    parentMenuId.value = (row as any).parentId ?? null
     dialogVisible.value = true
   }
 
@@ -420,10 +425,40 @@
    * 提交表单数据
    * @param formData 表单数据
    */
-  const handleSubmit = (formData: MenuFormData): void => {
-    console.log('提交数据:', formData)
-    // TODO: 调用API保存数据
-    getMenuList()
+  const handleSubmit = async (formData: MenuFormData): Promise<void> => {
+    try {
+      const payload = {
+        parentId: parentMenuId.value,
+        name: formData.label,
+        path: formData.path,
+        component: formData.component,
+        title: formData.name,
+        icon: formData.icon,
+        keepAlive: formData.keepAlive,
+        isHide: formData.isHide,
+        isHideTab: formData.isHideTab,
+        isFullPage: formData.isFullPage,
+        isFirstLevel: formData.isMenu,
+        activePath: formData.activePath,
+        link: formData.link,
+        sortOrder: formData.sort,
+        enabled: formData.isEnable
+      }
+
+      if (formData.id && formData.id > 0) {
+        await updateMenu(formData.id, payload)
+        ElMessage.success('编辑成功')
+      } else {
+        await createMenu(payload)
+        ElMessage.success('新增成功')
+      }
+
+      dialogVisible.value = false
+      editData.value = null
+      await getMenuList()
+    } catch (error) {
+      ElMessage.error('保存失败')
+    }
   }
 
   /**
@@ -482,5 +517,16 @@
         processRows(filteredTableData.value)
       }
     })
+  }
+
+  /**
+   * 新增子菜单
+   */
+  const handleAddChild = (row: AppRouteRecord): void => {
+    dialogType.value = 'menu'
+    editData.value = null
+    lockMenuType.value = true
+    parentMenuId.value = row.id
+    dialogVisible.value = true
   }
 </script>

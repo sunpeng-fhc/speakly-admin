@@ -18,12 +18,12 @@
           <ElOption label="女" value="女" />
         </ElSelect>
       </ElFormItem>
-      <ElFormItem label="角色" prop="role">
-        <ElSelect v-model="formData.role" multiple>
+      <ElFormItem label="角色" prop="roleIds">
+        <ElSelect v-model="formData.roleIds" multiple placeholder="请选择角色">
           <ElOption
             v-for="role in roleList"
-            :key="role.roleCode"
-            :value="role.roleCode"
+            :key="role.roleId"
+            :value="role.roleId"
             :label="role.roleName"
           />
         </ElSelect>
@@ -39,8 +39,8 @@
 </template>
 
 <script setup lang="ts">
-  import { ROLE_LIST_DATA } from '@/mock/temp/formData'
   import type { FormInstance, FormRules } from 'element-plus'
+  import { fetchGetRoleList, fetchUserRoleIds, createUser, updateUser } from '@/api/system-manage'
 
   interface Props {
     visible: boolean
@@ -56,67 +56,78 @@
   const props = defineProps<Props>()
   const emit = defineEmits<Emits>()
 
-  // 角色列表数据
-  const roleList = ref(ROLE_LIST_DATA)
+  const roleList = ref<Api.SystemManage.RoleListItem[]>([])
 
-  // 对话框显示控制
   const dialogVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value)
   })
 
   const dialogType = computed(() => props.type)
-
-  // 表单实例
   const formRef = ref<FormInstance>()
 
-  // 表单数据
   const formData = reactive({
     username: '',
     phone: '',
+    email: '',
     gender: '男',
-    role: [] as string[]
+    status: '1',
+    roleIds: [] as number[]
   })
 
-  // 表单验证规则
   const rules: FormRules = {
     username: [
       { required: true, message: '请输入用户名', trigger: 'blur' },
       { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
     ],
-    phone: [
-      { required: true, message: '请输入手机号', trigger: 'blur' },
-      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }
-    ],
+    phone: [{ required: false }],
     gender: [{ required: true, message: '请选择性别', trigger: 'blur' }],
-    role: [{ required: true, message: '请选择角色', trigger: 'blur' }]
+    roleIds: [{ required: true, message: '请选择角色', trigger: 'change' }]
   }
 
-  /**
-   * 初始化表单数据
-   * 根据对话框类型（新增/编辑）填充表单
-   */
-  const initFormData = () => {
+  const loadRoles = async () => {
+    const res = await fetchGetRoleList({
+      current: 1,
+      size: 100
+    })
+
+    roleList.value = res.records || []
+  }
+
+  const initFormData = async () => {
+    await loadRoles()
+
     const isEdit = props.type === 'edit' && props.userData
     const row = props.userData
 
-    Object.assign(formData, {
-      username: isEdit && row ? row.userName || '' : '',
-      phone: isEdit && row ? row.userPhone || '' : '',
-      gender: isEdit && row ? row.userGender || '男' : '男',
-      role: isEdit && row ? (Array.isArray(row.userRoles) ? row.userRoles : []) : []
-    })
+    if (isEdit && row?.id) {
+      const roleIds = await fetchUserRoleIds(row.id)
+
+      Object.assign(formData, {
+        username: row.userName || '',
+        phone: row.userPhone || '',
+        email: row.userEmail || '',
+        gender: row.userGender || '男',
+        status: row.status || '1',
+        roleIds
+      })
+    } else {
+      Object.assign(formData, {
+        username: '',
+        phone: '',
+        email: '',
+        gender: '男',
+        status: '1',
+        roleIds: []
+      })
+    }
   }
 
-  /**
-   * 监听对话框状态变化
-   * 当对话框打开时初始化表单数据并清除验证状态
-   */
   watch(
     () => [props.visible, props.type, props.userData],
-    ([visible]) => {
+    async ([visible]) => {
       if (visible) {
-        initFormData()
+        await initFormData()
         nextTick(() => {
           formRef.value?.clearValidate()
         })
@@ -125,19 +136,34 @@
     { immediate: true }
   )
 
-  /**
-   * 提交表单
-   * 验证通过后触发提交事件
-   */
   const handleSubmit = async () => {
     if (!formRef.value) return
 
-    await formRef.value.validate((valid) => {
-      if (valid) {
-        ElMessage.success(dialogType.value === 'add' ? '添加成功' : '更新成功')
-        dialogVisible.value = false
-        emit('submit')
+    await formRef.value.validate()
+
+    const payload = {
+      username: formData.username,
+      mobile: formData.phone,
+      email: formData.email,
+      gender: formData.gender === '女' ? 0 : 1,
+      status: formData.status,
+      roleIds: formData.roleIds
+    }
+
+    if (dialogType.value === 'add') {
+      await createUser(payload)
+      ElMessage.success('添加成功')
+    } else {
+      if (!props.userData?.id) {
+        ElMessage.error('用户ID不存在')
+        return
       }
-    })
+
+      await updateUser(props.userData.id, payload)
+      ElMessage.success('更新成功')
+    }
+
+    dialogVisible.value = false
+    emit('submit')
   }
 </script>
